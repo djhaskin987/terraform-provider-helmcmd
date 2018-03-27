@@ -10,5 +10,20 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+vendor/
+/terraform-provider-helmcmd
+
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+
+
+.terraform/
+*.tfstate
+*.backup
+
+# Editor save files
+.*.sw[a-z]
+.#*
+.*#
+\#*
+*~

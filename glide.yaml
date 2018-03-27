@@ -1,0 +1,15 @@
+package: github.com/djhaskin987/terraform-provider-helmcmd
+import:
+- package: github.com/dogenzaka/tsv
+- package: github.com/ghodss/yaml
+  version: ^1.0.0
+- package: github.com/hashicorp/terraform
+  version: ^0.11.5
+  subpackages:
+  - helper/schema
+  - plugin
+  - terraform
+- package: github.com/tdewolff/minify
+  version: ^2.3.4
+  subpackages:
+  - json
