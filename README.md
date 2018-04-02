@@ -71,7 +71,7 @@ required.
 
 If the `chart_source_type` is "repository", `chart_source` must be
 the name of one of the helm repositories previously configured in the helm CLI.
-Example: "source".
+Example: `stable`.
 
 The other provider parameters coincide with global helm CLI options: `debug`
 for `--debug` and `kube_context` for `--kube-context`, respectively.
