@@ -110,7 +110,7 @@ when `helm upgrade` is called. It is normalized to minified JSON in the
 internal state to ensure that two equivalent YAML documents are compared
 correctly regardless of whitespace differences, and also to avoid errors
 associated with slurping YAML in and spitting it back out as YAML. (The
-original author has had run-ins with this when using Helm's on `toYaml` in
+original author has had run-ins with this when using Helm's own `toYaml` in
 combination with multi-line strings.)
 
 ## Terraform Import
