@@ -163,11 +163,12 @@ func (c *HelmCmd) Upgrade(release *HelmRelease) error {
 	cmd.Stdout = stdout
 	cmd.Stdin = strings.NewReader(release.Overrides)
 
+	commandDisplay := fmt.Sprintf("helm %s", strings.Join(upgradeArgs, " "))
 	if err := cmd.Run(); err != nil {
 		if stderr.Len() == 0 {
-			return fmt.Errorf("helm upgrade: %v", err)
+			return fmt.Errorf("%s: %v", commandDisplay, err)
 		}
-		return fmt.Errorf("helm upgrade %v: %s", err, stderr.Bytes())
+		return fmt.Errorf("%s %v: %s", commandDisplay, err, stderr.Bytes())
 	}
 	log.Printf("%s\n", stdout.String())
 
