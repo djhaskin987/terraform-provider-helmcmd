@@ -39,6 +39,7 @@ type HelmCmd struct {
 	ChartSourceType string
 	ChartSource     string
 	Debug           bool
+	TillerNamespace string
 }
 
 type HelmRelease struct {
@@ -72,6 +73,9 @@ func (c *HelmCmd) globalArgs() []string {
 	}
 	if c.Debug {
 		args = append(args, "--debug")
+	}
+	if c.TillerNamespace != "" {
+		args = append(args, "--tiller-namespace", c.TillerNamespace)
 	}
 	return args
 
@@ -196,6 +200,9 @@ func (c *HelmCmd) Read(release *HelmRelease) error {
 	if c.KubeContext != "" {
 		cmdArgs = append(cmdArgs, "--kube-context", c.KubeContext)
 	}
+	if c.TillerNamespace  != "" {
+		cmdArgs = append(cmdArgs, "--tiller-namespace", c.TillerNamespace)
+	}
 
 	results, err := c.helmReadFromList(release)
 	if err != nil {
@@ -280,6 +287,9 @@ func (c *HelmCmd) helmReadFromList(release *HelmRelease) (*HelmReleaseInfo, erro
 	cmdArgs := []string{}
 	if c.KubeContext != "" {
 		cmdArgs = append(cmdArgs, "--kube-context", c.KubeContext)
+	}
+	if c.TillerNamespace  != "" {
+		cmdArgs = append(cmdArgs, "--tiller-namespace", c.TillerNamespace)
 	}
 	cmdArgs = append(cmdArgs, "list", "-a")
 	cmd := exec.Command("helm", cmdArgs...)
