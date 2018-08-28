@@ -51,7 +51,7 @@ Please see the `examples/` folder for examples on how to use this provider.
 ```hcl
 provider "helmcmd_release" {
   kube_context = "..."
-  chart_source_type: "..."
+  chart_source_type = "..."
   chart_source = "..."
   debug =  true/false
 }

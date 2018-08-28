@@ -56,6 +56,14 @@ func main() {
 						Default:     false,
 						Description: "Whether to turn on helm debug output",
 					},
+					"tiller_namespace": {
+						Type:     schema.TypeString,
+						Required: false,
+						Description: "The namespace tiller is running in." +
+						  "If tiller is installed into another namespace" +
+							"by default tiller is in kube-system but can be installed" +
+							"into another namespace",
+					},
 				},
 				ResourcesMap: map[string]*schema.Resource{
 					"helmcmd_release": resourceManifest(),
@@ -72,6 +80,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ChartSourceType: d.Get("chart_source_type").(string),
 		ChartSource:     d.Get("chart_source").(string),
 		Debug:           d.Get("debug").(bool),
+		TillerNamespace: d.Get("tiller_namespace").(string),
 	}
 
 	if result.ChartSourceType != "repository" &&
