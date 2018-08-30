@@ -54,6 +54,7 @@ provider "helmcmd_release" {
   chart_source_type = "..."
   chart_source = "..."
   debug =  true/false
+  tiller_namespace = "..."
 }
 ```
 Each provider is associated with a chart source. This was necessary to preserve
@@ -72,6 +73,9 @@ required.
 If the `chart_source_type` is "repository", `chart_source` must be
 the URL of one of the helm repositories previously configured in the helm CLI.
 Example: `https://kubernetes-charts.storage.googleapis.com/`.
+
+The parameter `tiller_namespace` is optional and can be used to specify
+what namespace tiller resides in on kubernetes.
 
 The other provider parameters coincide with global helm CLI options: `debug`
 for `--debug` and `kube_context` for `--kube-context`, respectively.

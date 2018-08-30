@@ -60,7 +60,7 @@ func main() {
 						Type:     schema.TypeString,
 						Required: false,
 						Description: "The namespace tiller is running in." +
-						  "If tiller is installed into another namespace" +
+							"If tiller is installed into another namespace" +
 							"by default tiller is in kube-system but can be installed" +
 							"into another namespace",
 					},
