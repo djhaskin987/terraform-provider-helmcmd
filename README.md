@@ -49,12 +49,12 @@ Please see the `examples/` folder for examples on how to use this provider.
 ## Provider Configuration
 
 ```hcl
-provider "helmcmd_release" {
+provider "helmcmd" {
   kube_context = "..."
-  chart_source_type = "..."
-  chart_source = "..."
-  debug =  true/false
-  tiller_namespace = "..."
+  chart_source_type = "repository"
+  chart_source = "https://kubernetes-charts.storage.googleapis.com"
+  debug = true
+  tiller_namespace = "default"
 }
 ```
 Each provider is associated with a chart source. This was necessary to preserve
@@ -89,7 +89,7 @@ It has the following parameters:
 resource "helmcmd_release" "myrelease" {
   name = "helm-release-name"
   chart_name = "chart-name"
-  chart_verion = "0.2.0"
+  chart_version = "0.2.0"
   namespace = "default"
   overrides = "{}"
 }
