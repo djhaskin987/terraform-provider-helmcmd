@@ -50,11 +50,16 @@ Please see the `examples/` folder for examples on how to use this provider.
 
 ```hcl
 provider "helmcmd" {
+  debug = true
+  home = "..."
+  host = "..."
   kube_context = "..."
+  kubeconfig = "..."
+  tiller_connection_timeout = 300
+  tiller_namespace = "default"
+  timeout = 300
   chart_source_type = "repository"
   chart_source = "https://kubernetes-charts.storage.googleapis.com"
-  debug = true
-  tiller_namespace = "default"
 }
 ```
 Each provider is associated with a chart source. This was necessary to preserve
@@ -74,11 +79,16 @@ If the `chart_source_type` is "repository", `chart_source` must be
 the URL of one of the helm repositories previously configured in the helm CLI.
 Example: `https://kubernetes-charts.storage.googleapis.com/`.
 
-The parameter `tiller_namespace` is optional and can be used to specify
-what namespace tiller resides in on kubernetes.
+The `timeout` option above allows to specify a `--timeout` value for when
+`helm update` is called on resource creation and update, and also for when
+`helm delete` is called on resource deletion.
 
-The other provider parameters coincide with global helm CLI options: `debug`
-for `--debug` and `kube_context` for `--kube-context`, respectively.
+The other provider parameters coincide with global [helm CLI
+options](https://docs.helm.sh/helm/#helm) and are all optional: `debug` for
+`--debug`, `home` for `--home`, `host` for `--host`, `kube_context` for
+`--kube-context`, `kubeconfig` for `--kubeconfig`, `tiller_connection_timeout`
+for `--tiller-connection-timeout`, and `tiller_namespace` for
+`--tiller-namespace`.
 
 ## Resource Configuration
 

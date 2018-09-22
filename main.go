@@ -29,11 +29,57 @@ func main() {
 		ProviderFunc: func() terraform.ResourceProvider {
 			return &schema.Provider{
 				Schema: map[string]*schema.Schema{
+					"debug": {
+						Type:        schema.TypeBool,
+						Optional:    true,
+						Default:     false,
+						Description: "Whether to turn on helm debug output",
+					},
+					"home": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Default:     "",
+						Description: "Location of your Helm config. Overrides $HELM_HOME (e.g., `~/.helm`). If empty, this option will not be used.",
+					},
+					"host": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Default:     "",
+						Description: "Address of Tiller. Overrides $HELM_HOST. If empty, this option will not be used.",
+					},
 					"kube_context": {
 						Type:        schema.TypeString,
 						Optional:    true,
 						Default:     "",
-						Description: "Kube context to use in config",
+						Description: "Kube context to use in config. If empty, this option will not be used.",
+					},
+					"kubeconfig": {
+						Type:        schema.TypeString,
+						Optional:    true,
+						Default:     "",
+						Description: "Absolute path to the kubeconfig file to use. If empty, this option will not be used.",
+					},
+					"tiller_connection_timeout": {
+						Type:        schema.TypeInt,
+						Optional:    true,
+						Default:     -1,
+						Description: "The duration (in seconds) Helm will wait to establish a connection to tiller. If negative, an argument won't be given to helm",
+					},
+					"tiller_namespace": {
+						Type:     schema.TypeString,
+						Optional: true,
+						Default:  "",
+						Description: "The namespace tiller is running in." +
+							"If tiller is installed into another namespace" +
+							"by default tiller is in kube-system but can be installed" +
+							"into another namespace. If empty, this option " +
+							"will not be used.",
+					},
+					"timeout": {
+						Type:        schema.TypeInt,
+						Optional:    true,
+						Default:     -1,
+						Description: "Time in seconds to wait for any individual Kubernetes operation. If negative, an argument won't be given to helm",
 					},
 					"chart_source_type": {
 						Type:     schema.TypeString,
@@ -50,21 +96,6 @@ func main() {
 							"be found by name. If it is set to `repository`," +
 							" this is the specifier for a chart URL.",
 					},
-					"debug": {
-						Type:        schema.TypeBool,
-						Optional:    true,
-						Default:     false,
-						Description: "Whether to turn on helm debug output",
-					},
-					"tiller_namespace": {
-						Type:     schema.TypeString,
-						Optional: true,
-						Default:  "",
-						Description: "The namespace tiller is running in." +
-							"If tiller is installed into another namespace" +
-							"by default tiller is in kube-system but can be installed" +
-							"into another namespace",
-					},
 				},
 				ResourcesMap: map[string]*schema.Resource{
 					"helmcmd_release": resourceManifest(),
@@ -77,11 +108,16 @@ func main() {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	result := &helmcmd.HelmCmd{
-		KubeContext:     d.Get("kube_context").(string),
-		ChartSourceType: d.Get("chart_source_type").(string),
-		ChartSource:     d.Get("chart_source").(string),
-		Debug:           d.Get("debug").(bool),
-		TillerNamespace: d.Get("tiller_namespace").(string),
+		Debug:                   d.Get("debug").(bool),
+		Home:                    d.Get("home").(string),
+		Host:                    d.Get("host").(string),
+		KubeContext:             d.Get("kube_context").(string),
+		Kubeconfig:              d.Get("kubeconfig").(string),
+		TillerConnectionTimeout: d.Get("tiller_connection_timeout").(int),
+		TillerNamespace:         d.Get("tiller_namespace").(string),
+		Timeout:                 d.Get("timeout").(int),
+		ChartSourceType:         d.Get("chart_source_type").(string),
+		ChartSource:             d.Get("chart_source").(string),
 	}
 
 	if result.ChartSourceType != "repository" &&
@@ -107,27 +143,33 @@ func resourceManifest() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
+				Description: "Name of the helm release",
+				Type:        schema.TypeString,
+				ForceNew:    true,
+				Required:    true,
 			},
 			"chart_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "Name of the chart to use in the helm release",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"chart_version": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Description: "Version of the chart to use in the helm release",
+				Type:        schema.TypeString,
+				Required:    true,
 			},
 			"namespace": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "default",
+				Description: "Kubernetes namespace to which to deploy the helm release",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "default",
+				ForceNew:    true,
 			},
 			"overrides": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "{}",
+				Description: "Map to be fed into helm as the overrides of the release",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Default:     "{}",
 				StateFunc: func(thing interface{}) string {
 					return helmcmd.AttemptNormalizeInput(thing.(string))
 				},

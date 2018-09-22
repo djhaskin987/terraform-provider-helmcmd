@@ -31,15 +31,19 @@ import (
 )
 
 /* TODO:
-   - Incorporate Kubeconfig in commands
    - Incorporate helm dep update
 */
 type HelmCmd struct {
-	KubeContext     string
-	ChartSourceType string
-	ChartSource     string
-	Debug           bool
-	TillerNamespace string
+	Debug                   bool
+	Home                    string
+	Host                    string
+	KubeContext             string
+	Kubeconfig              string
+	TillerConnectionTimeout int
+	TillerNamespace         string
+	Timeout                 int
+	ChartSourceType         string
+	ChartSource             string
 }
 
 type HelmRelease struct {
@@ -66,19 +70,42 @@ func run(cmd *exec.Cmd) error {
 	return nil
 }
 
-func (c *HelmCmd) globalArgs() []string {
+// Return global arguments that do not affect output format.
+// This is used in e.g. helmReadFromList, which needs to get `helm list`
+// output but also needs to put other behavioral global arguments
+// into helm as well. So, helmReadFromList *needs* to call
+// `helm list` without the `debug` flag even if it was
+// specified.
+func (c *HelmCmd) behavioralGlobalArgs() []string {
 	args := []string{}
+
+	if c.Home != "" {
+		args = append(args, "--home", c.Home)
+	}
+	if c.Host != "" {
+		args = append(args, "--host", c.Host)
+	}
 	if c.KubeContext != "" {
 		args = append(args, "--kube-context", c.KubeContext)
 	}
-	if c.Debug {
-		args = append(args, "--debug")
+	if c.Kubeconfig != "" {
+		args = append(args, "--kubeconfig", c.Kubeconfig)
+	}
+	if c.TillerConnectionTimeout >= 0 {
+		args = append(args, "--tiller-connection-timeout", strconv.Itoa(c.TillerConnectionTimeout))
 	}
 	if c.TillerNamespace != "" {
 		args = append(args, "--tiller-namespace", c.TillerNamespace)
 	}
 	return args
+}
 
+func (c *HelmCmd) globalArgs() []string {
+	args := c.behavioralGlobalArgs()
+	if c.Debug {
+		args = append(args, "--debug")
+	}
+	return args
 }
 
 func (r *HelmRelease) Validate() error {
@@ -120,7 +147,11 @@ type HelmReleaseInfo struct {
 
 func (c *HelmCmd) deleteRaw(release *HelmRelease) error {
 	deleteArgs := c.globalArgs()
-	deleteArgs = append(deleteArgs, "delete", "--purge", release.Name)
+	deleteArgs = append(deleteArgs, "delete")
+	if c.Timeout >= 0 {
+		deleteArgs = append(deleteArgs, "--timeout", strconv.Itoa(c.Timeout))
+	}
+	deleteArgs = append(deleteArgs, "--purge", release.Name)
 	stdout := &bytes.Buffer{}
 	cmd := exec.Command("helm", deleteArgs...)
 	cmd.Stdout = stdout
@@ -141,7 +172,9 @@ func (c *HelmCmd) Upgrade(release *HelmRelease) error {
 	upgradeArgs := c.globalArgs()
 	upgradeArgs = append(upgradeArgs, "upgrade", "--install", "--devel",
 		"--wait", "-f", "-")
-
+	if c.Timeout >= 0 {
+		upgradeArgs = append(upgradeArgs, "--timeout", strconv.Itoa(c.Timeout))
+	}
 	upgradeArgs = append(upgradeArgs, "--version", release.ChartVersion)
 	upgradeArgs = append(upgradeArgs, "--namespace", release.Namespace)
 	upgradeArgs = append(upgradeArgs, release.Name)
@@ -151,11 +184,16 @@ func (c *HelmCmd) Upgrade(release *HelmRelease) error {
 		upgradeArgs = append(upgradeArgs, release.ChartName)
 	} else if c.ChartSourceType == "filesystem" {
 		chartLocation := filepath.Join(c.ChartSource, release.ChartName)
-		helmRepoUpdate := exec.Command("helm", "repo", "update")
+		repoUpdateArgs := c.globalArgs()
+		repoUpdateArgs = append(repoUpdateArgs, "repo", "update")
+		helmRepoUpdate := exec.Command("helm", repoUpdateArgs...)
 		if err := run(helmRepoUpdate); err != nil {
 			return err
 		}
-		helmDepUpdate := exec.Command("helm", "dependency", "update", chartLocation)
+		helmDepUpdateArgs := c.globalArgs()
+		helmDepUpdateArgs = append(helmDepUpdateArgs, "dependency", "update",
+			chartLocation)
+		helmDepUpdate := exec.Command("helm", helmDepUpdateArgs...)
 		if err := run(helmDepUpdate); err != nil {
 			return err
 		}
@@ -195,24 +233,14 @@ func (c *HelmCmd) Delete(release *HelmRelease) error {
 }
 
 func (c *HelmCmd) Read(release *HelmRelease) error {
-	stdout := &bytes.Buffer{}
-	cmdArgs := []string{}
-	if c.KubeContext != "" {
-		cmdArgs = append(cmdArgs, "--kube-context", c.KubeContext)
-	}
-	if c.TillerNamespace  != "" {
-		cmdArgs = append(cmdArgs, "--tiller-namespace", c.TillerNamespace)
-	}
 
 	results, err := c.helmReadFromList(release)
 	if err != nil {
 		return err
 	}
-
 	if results.Status == "DELETED" {
 		return ErrHelmNotExist
 	}
-
 	if results.Status != "DEPLOYED" {
 		return ErrUnsuccessfulDeploy
 	}
@@ -222,6 +250,8 @@ func (c *HelmCmd) Read(release *HelmRelease) error {
 	release.ChartVersion = results.ChartVersion
 	release.Namespace = results.Namespace
 
+	stdout := &bytes.Buffer{}
+	cmdArgs := c.behavioralGlobalArgs()
 	cmdArgs = append(cmdArgs, "get", "values", release.Name)
 	cmd := exec.Command("helm", cmdArgs...)
 	cmd.Stdout = stdout
@@ -284,13 +314,7 @@ func helmReadRow(release *HelmRelease, currentRow *HelmReleaseInfoRow) (*HelmRel
 
 func (c *HelmCmd) helmReadFromList(release *HelmRelease) (*HelmReleaseInfo, error) {
 	stdout := &bytes.Buffer{}
-	cmdArgs := []string{}
-	if c.KubeContext != "" {
-		cmdArgs = append(cmdArgs, "--kube-context", c.KubeContext)
-	}
-	if c.TillerNamespace  != "" {
-		cmdArgs = append(cmdArgs, "--tiller-namespace", c.TillerNamespace)
-	}
+	cmdArgs := c.behavioralGlobalArgs()
 	cmdArgs = append(cmdArgs, "list", "-a")
 	cmd := exec.Command("helm", cmdArgs...)
 	cmd.Stdout = stdout
@@ -307,6 +331,9 @@ func (c *HelmCmd) helmReadFromList(release *HelmRelease) (*HelmReleaseInfo, erro
 	cleanOutput := rightSpaces.ReplaceAllString(slimmedOutput, "")
 
 	log.Printf("Output:\n%s\n", cleanOutput)
+	if cleanOutput == "" {
+		return nil, ErrHelmNotExist
+	}
 	currentRow := HelmReleaseInfoRow{}
 	r := strings.NewReader(cleanOutput)
 	parser, _ := tsv.NewParser(r, &currentRow)
