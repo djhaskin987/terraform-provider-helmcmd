@@ -298,7 +298,7 @@ func helmReadRow(release *HelmRelease, currentRow *HelmReleaseInfoRow) (*HelmRel
 	}
 
 	results.Status = currentRow.Status
-	ChartRegex := regexp.MustCompile("^([a-z]([-a-z0-9]*[a-z0-9])?)-([0-9]+\\.[0-9]+\\.[0-9]+.*)$")
+	ChartRegex := regexp.MustCompile("^([a-z]([-a-z0-9]*[a-z0-9])?)-(v?[0-9]+\\.[0-9]+\\.[0-9]+.*)$")
 	chartStr := currentRow.Chart
 	matches := ChartRegex.FindStringSubmatch(chartStr)
 	if len(matches) < 4 {
